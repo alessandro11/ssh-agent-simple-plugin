@@ -23,4 +23,3 @@ unset SSH_KEY
 
 export SSH_AUTH_SOCK
 
-export PATH=$PATH:$HOME/.local/bin
