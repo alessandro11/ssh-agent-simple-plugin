@@ -1,8 +1,7 @@
 CWD = $(shell pwd)
 
 install:
-	ln --symbolic --force $(CWD)/ssh-agent.incsh ~/.ssh-agent.incsh
+	ln --symbolic --force $(CWD)/ssh-agent.sh ~/.ssh-agent.sh
 
 uninstall:
-	unlink ~/.ssh-agent.incsh
-
+	unlink ~/.ssh-agent.sh
