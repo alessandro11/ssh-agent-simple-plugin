@@ -1,0 +1,6 @@
+#!/usr/bin/expect -f
+
+spawn ssh-add /home/$::env(USER)/.ssh/id_ecdsa
+expect "Enter passphrase for /home/$::env(USER)/.ssh/id_ecdsa:"
+send "password\n";
+expect "Identity added: /home/$::env(USER)/.ssh/id_rsa (/home/user/.ssh/id_rsa)"
