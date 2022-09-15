@@ -1,5 +1,15 @@
-SSH_AGENT_PATH="$HOME/.ssh/ssh-agent"
-SSH_KEYS="$HOME/.ssh/id_rsa $HOME/.ssh/id_ecdsa"
+# This version is only compatible with zsh, since the line of the script:
+# for eachKey in $(echo $SSH_KEYS); do does not interact in bash,
+#it returns a single string
+
+#
+# Load configs either from the default config path or defined on XDG_CONFIG_HOME
+# https://wiki.archlinux.org/title/XDG_Base_Directory
+if [ -z "$XDG_CONFIG_HOME" ]; then
+    source "${HOME}/.config/ssh-agent/env.sh"
+else
+    source "${XDG_CONFIG_HOME}/ssh-agent/env.sh"
+fi
 
 perr() {
     echo $@ 1>&2
@@ -12,7 +22,7 @@ get_file_name() {
 }
 
 run_ssh_agent() {
-    local var='' pass=''
+    local pvt_key_path_filename='' pass_filename='' pass=''
 
     #
     # run ssh agent
@@ -20,32 +30,33 @@ run_ssh_agent() {
     eval $(ssh-agent -s)
 
     #
-    # for each defined key on variable at beggining
-    # of this file.
+    # Interact on each pair of variables defined as csv.
+    # Definition of a pair in a csv
+    # filename2pass:PATH_FILE_NAME1,filename2pass:PATH_FILE_NAME2, ... ,filename2pass:PATH_FILE_NAMEn
+    # WHERE:
+    #  filename2pass is the file name at $HOME dir with the password only
+    #  PATH_FILE_NAME is absolute path to the private ssh key
     #
-    # DO NOT use simple "SSH_KEYS expantion"
-    # zsh does not work, it passes as sigle string
-	for eachKey in $(echo $SSH_KEYS); do
+    IFS_BACKUP=$IFS
+    IFS=','
+	  for eachKey in $(echo $SSH_KEYS); do
+        IFS=':' read pass_filename pvt_key_path_filename <<<$eachKey
         #
-        # Expect a variable with name of the
-        # private ssh key file (e.g id_rsa)
-        # with content; the password
+        # Expected the file at the HOME dir; read the password defined
         #
-        var="\$$(get_file_name $eachKey)"
-        eval pass=$var
+        read pass < ${HOME}/${pass_filename}
         if [ -z "$pass" ]; then # password has been defined?
-            perr "Error: no pass found for key '$eachKey'!"
+            perr "Error: no pass found for private key '$pvt_key_path_filename'!"
         else
             # load dynamically ssh key with the password
-            $HOME/.ssh/ssh-pass.exp "$eachKey" "$pass"
-            # remove from the env for security purpose
-            unset "${var:1}"
+            ssh-pass.exp "$pvt_key_path_filename" "$pass"
         fi
-	done
+	  done
+    IFS=$IFS_BACKUP
 
     # create an symbolic link for the ssh agent socket
     # that's the way we detect if the agent is running
-	ln -s "$SSH_AUTH_SOCK" "$SSH_AGENT_PATH"
+	  ln -s "$SSH_AUTH_SOCK" "$SSH_AGENT_PATH"
 }
 
 #
